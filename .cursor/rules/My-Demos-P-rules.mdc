@@ -1,0 +1,48 @@
+---
+alwaysApply: true
+---
+
+# 项目级开发规范（Cursor Vibe 专属）
+## 基础约定
+1. 技术栈限定：仅使用 JDK 11 + Spring Boot 3.2.5 + MySQL 8.0.36 + MyBatis 3.5.15（注解/XML二选一） + Maven 3.9.6 + Log4j2 2.20.0 + SkyWalking 9.7.0，禁止新增额外框架/依赖；
+2. 编译要求：代码需通过 `mvn -DskipTests=true clean package` 编译，无语法错误、依赖冲突；
+3. 日志规范：所有日志必须包含SkyWalking traceId（通过`TraceContext.traceId()`获取），敏感信息脱敏（手机号保留前3后4位，身份证保留前6后4位，密码加密存储且日志不打印）；
+4. 数据库规范：禁止SQL拼接，MyBatis必须使用`#{}`占位符，事务注解需明确传播属性（如`@Transactional(propagation = Propagation.REQUIRED)`）。
+
+## 代码分层与命名规则（强制）
+### 1. 包结构（最外层）
+必须严格遵循以下包结构，所有类按所属层放入对应包：
+- controller：控制层，存放接口请求处理类
+- service：服务层，存放业务逻辑接口及实现类
+- domain：领域层，存放核心业务模型类
+- mapper：数据访问层，存放MyBatis Mapper接口及XML
+- util：工具层，存放通用工具类（如脱敏、日志、traceId获取）
+- enum：枚举层，存放所有业务枚举类
+- exception：异常层，存放自定义异常类及全局异常处理器
+
+### 2. 类后缀命名规则
+- controller层入参/出参类：以DTO结尾（例：UserLoginDTO、UserInfoDTO）
+- service层入参/出参类：以BO结尾（例：UserLoginBO、UserQueryBO）
+- domain层核心模型类：以DO结尾（例：UserDO、OrderDO，对应数据库表）
+- mapper层入参/出参类：以PO结尾（例：UserQueryPO、UserUpdatePO）
+
+### 3. 通用命名规则
+- 实体类（DO）：首字母大写驼峰，对应数据库表名（例：UserDO → t_user）；
+- Mapper接口：DO类名+Mapper（例：UserMapper），XML文件名与接口名一致（例：UserMapper.xml，存放路径：resources/mapper/）；
+- Service层：接口为「DO类名+Service」，实现类为「接口名+Impl」（例：UserService + UserServiceImpl）；
+- Controller：DO类名+Controller（例：UserController）；
+- 方法/变量：方法名遵循「动词+名词」（例：login、getUserByUsername），变量名小写驼峰，符合Java规范。
+
+## 输出要求
+1. 所有文件需标注「完整路径+文件名」，可直接复制到项目对应目录，包含：
+   - Java源码（按controller/service/domain/mapper/util/enum/exception包结构组织）；
+   - MyBatis实现（XML/注解，XML放resources/mapper/）；
+   - pom.xml片段（仅新增/修改的依赖）；
+   - 配置变更（application.yml/application.properties/Log4j2/SkyWalking）；
+   - 单元测试（JUnit5，路径：src/test/java/对应包下，覆盖正常/异常/边界场景）；
+2. 若缺失核心依赖/代码片段，需明确列出缺失项及填充指引（例：缺失UserDO实体类需补充id/username/password字段）。
+
+## 验证步骤
+1. 环境准备：确认JDK 11/MySQL 8.0.36/Maven 3.9.6/SkyWalking 9.7.0版本一致，配置Maven镜像；
+2. 编译验证：执行`mvn -DskipTests=true clean package`，预期生成target/jar包，无编译错误；
+3. 排查指引：编译失败检查依赖版本/文件路径/语法，测试失败检查逻辑/参数/数据库连接。
